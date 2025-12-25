@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Stories</title>
+
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#111; font-family:Arial,sans-serif; display:flex; justify-content:center; align-items:center; min-height:100vh; touch-action: pan-y; }
+.story-box { width:min(390px,100vw); height:min(844px,100vh); position:relative; border-radius:26px; overflow:hidden; background:black; box-shadow:0 20px 60px rgba(0,0,0,0.7); }
+video,img { width:100%; height:100%; object-fit:cover; }
+.story-text { position:absolute; bottom:110px; left:16px; right:16px; color:white; font-size:17px; background:rgba(0,0,0,0.45); padding:12px; border-radius:14px; }
+.progress { position:absolute; top:10px; left:10px; right:10px; height:4px; background:rgba(255,255,255,0.3); border-radius:5px; overflow:hidden; }
+.progress-bar { width:0%; height:100%; background:white; }
+@media (max-width:420px){ .story-box{ width:100vw; height:100vh; border-radius:0; box-shadow:none; } .story-text{ font-size:16px; bottom:100px; } }
+</style>
+</head>
+
+<body>
+
+<div class="story-box" id="storyBox">
+    <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+    <div id="media"></div>
+    <div class="story-text" id="storyText"></div>
+</div>
+
+<audio id="bgMusic" src="music.mp3" loop></audio>
+
+<script>
+const stories = [
+    /* 7 видео */
+    { type: "video", src: "video_2025-12-25_20-06-13.mp4", text: "Видео 1" },
+    { type: "video", src: "video_2025-12-25_20-06-28.mp4", text: "Видео 2" },
+    { type: "video", src: "video_2025-12-25_20-06-38.mp4", text: "Видео 3" },
+    { type: "video", src: "video_2025-12-25_20-06-45.mp4", text: "Видео 4" },
+    { type: "video", src: "video_2025-12-25_20-18-05.mp4", text: "Видео 5" },
+    { type: "video", src: "video_2025-12-25_20-18-13.mp4", text: "Видео 6" },
+    { type: "video", src: "video_2025-12-25_20-18-29.mp4", text: "Видео 7" },
+
+    /* 7 изображений */
+    { type: "image", src: "photo_2025-12-19_18-00-09.jpg", text: "Фото 1" },
+    { type: "image", src: "photo_2025-12-25_20-07-54.jpg", text: "Фото 2" },
+    { type: "image", src: "photo_2025-12-25_20-16-35.jpg", text: "Фото 3" },
+    { type: "image", src: "photo_2025-12-25_20-16-58 (2).jpg", text: "Фото 4" },
+    { type: "image", src: "photo_2025-12-25_20-16-58.jpg", text: "Фото 5" },
+    { type: "image", src: "photo_2025-12-25_20-16-59 (2).jpg", text: "Фото 6" },
+    { type: "image", src: "photo_2025-12-25_20-16-59.jpg", text: "Фото 7" }
+];
+
+let current = 0;
+let interval;
+let soundStarted = false;
+
+const storyBox = document.getElementById("storyBox");
+let startX = 0;
+let endX = 0;
+
+function loadStory() {
+    clearInterval(interval);
+    document.getElementById("progressBar").style.width = "0%";
+    const story = stories[current];
+    const media = document.getElementById("media");
+
+    if(story.type==="video"){
+        media.innerHTML = `<video id="storyVideo" autoplay playsinline><source src="${story.src}" type="video/mp4"></video>`;
+        const video = document.getElementById("storyVideo");
+        video.onloadedmetadata = () => {
+            interval = setInterval(() => {
+                const progress = (video.currentTime / video.duration)*100;
+                document.getElementById("progressBar").style.width = progress + "%";
+            },50);
+        };
+        video.onended = () => { nextStory(); };
+    } else {
+        media.innerHTML = `<img src="${story.src}">`;
+        let progress = 0;
+        interval = setInterval(()=>{
+            progress+=1;
+            document.getElementById("progressBar").style.width = progress + "%";
+            if(progress>=100) nextStory();
+        },50);
+    }
+
+    document.getElementById("storyText").innerText = story.text;
+}
+
+function nextStory(){
+    current++;
+    if(current>=stories.length) current=0;
+    loadStory();
+}
+
+function prevStory(){
+    current--;
+    if(current<0) current=stories.length-1;
+    loadStory();
+}
+
+/* свайп на мобильных */
+storyBox.addEventListener("touchstart", e=>{ startX = e.touches[0].clientX; });
+storyBox.addEventListener("touchend", e=>{
+    endX = e.changedTouches[0].clientX;
+    const diff = endX - startX;
+    if(diff > 50) prevStory();      // свайп вправо = назад
+    else if(diff < -50) nextStory(); // свайп влево = дальше
+});
+
+/* клики мышью на ПК */
+storyBox.addEventListener("click", e=>{
+    const width = storyBox.clientWidth;
+    const x = e.clientX;
+    if(x > width/2) nextStory();   // правая половина
+    else prevStory();              // левая половина
+});
+
+/* стрелки клавиатуры на ПК */
+document.addEventListener("keydown", e=>{
+    if(e.key==="ArrowRight") nextStory();
+    else if(e.key==="ArrowLeft") prevStory();
+});
+
+/* фоновая музыка */
+document.body.addEventListener("click", ()=>{
+    if(!soundStarted){
+        const bgMusic = document.getElementById("bgMusic");
+        bgMusic.volume=0.4;
+        bgMusic.play().catch(()=>{});
+        soundStarted = true;
+    }
+},{once:true});
+
+loadStory();
+</script>
+
+</body>
+</html>
